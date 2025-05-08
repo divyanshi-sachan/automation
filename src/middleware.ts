@@ -18,13 +18,10 @@ export default authMiddleware({
 
 export const config = {
   matcher: [
-    '/((?!.+\\.[\\w]+$|_next).*)',
-    '/',
-    '/(api|trpc)(.*)',
-
-    // 🚫 Explicitly exclude webhook and public API routes from middleware
-    '!/api/clerk-webhook',
-    '!/api/drive-activity/notification',
-    '!/api/payment/success',
+    // Only run middleware on specific routes that need auth
+    '/dashboard(.*)',
+    '/profile(.*)',
+    '/settings(.*)',
+    '/api/protected(.*)', // ← your protected API routes
   ],
 }
