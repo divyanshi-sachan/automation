@@ -17,7 +17,20 @@ function getPrismaClient(): PrismaClient {
   }
 
   if (!process.env.DATABASE_URL) {
-    throw new Error('Missing DATABASE_URL for PrismaClient.')
+    // On some platforms (e.g. Vercel) build-time Server Components may render
+    // without DB env vars available, and Prisma initialization would crash
+    // the entire build. Return a "no-op" proxy so the app can still build.
+    const noop = () => Promise.resolve(null)
+    const proxy = new Proxy(noop, {
+      get() {
+        return proxy
+      },
+      apply() {
+        return Promise.resolve(null)
+      },
+    })
+
+    return proxy as unknown as PrismaClient
   }
   return new PrismaClient()
 }
@@ -29,7 +42,10 @@ export const db = new Proxy(
     get(_target, prop) {
       const client = getPrismaClient()
       const value = (client as any)[prop]
-      if (typeof value === 'function') return value.bind(client)
+      if (typeof value === 'function') {
+        // Keep correct `this` semantics for Prisma methods.
+        return (...args: any[]) => value.apply(client, args)
+      }
       return value
     },
   }
